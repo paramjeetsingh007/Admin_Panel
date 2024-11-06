@@ -64,6 +64,7 @@ class _LoginpageState extends State<Loginpage> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
+                 
                   onPressed: () {},
                   child: const Text(
                     "Login",
@@ -75,9 +76,9 @@ class _LoginpageState extends State<Loginpage> {
                 text: 'Sign in with Google',
                 icon: Icons
                     .g_mobiledata, // Custom icon or use any other available
-                iconColor: Colors.black,
+                iconColor: Colors.white,
                 onPressed: () {},
-                backgroundColor: Colors.white,
+                backgroundColor: Colors.black,
                 width: 160, // Set the desired width
                 height: 40, // Set the desired height
                 fontSize: 12, // Adjust font size as needed
