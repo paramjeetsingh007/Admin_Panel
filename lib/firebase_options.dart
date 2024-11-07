@@ -4,16 +4,6 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
-/// Default [FirebaseOptions] for use with your Firebase apps.
-///
-/// Example:
-/// ```dart
-/// import 'firebase_options.dart';
-/// // ...
-/// await Firebase.initializeApp(
-///   options: DefaultFirebaseOptions.currentPlatform,
-/// );
-/// ```
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -60,5 +50,6 @@ class DefaultFirebaseOptions {
     authDomain: 'web-admin-e4ee0.firebaseapp.com',
     storageBucket: 'web-admin-e4ee0.firebasestorage.app',
     measurementId: 'G-M5XHK15WS9',
+    databaseURL: 'https://web-admin-e4ee0-default-rtdb.asia-southeast1.firebasedatabase.app', // Add your Firebase Realtime Database URL here
   );
 }
