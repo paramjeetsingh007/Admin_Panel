@@ -31,7 +31,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final DatabaseReference _database = FirebaseDatabase.instance.ref();
+  final DatabaseReference _database = FirebaseDatabase.instance.ref(); // Correct Firebase reference
 
   Map<String, dynamic> categories = {};
 
@@ -57,53 +57,11 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Add a new shop category
-  void _addCategory() async {
-    final newCategoryController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Add New Category'),
-          content: TextField(
-            controller: newCategoryController,
-            decoration: InputDecoration(labelText: 'Category Name'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final newCategory = newCategoryController.text;
-
-                if (newCategory.isNotEmpty) {
-                  // Create a new empty category in the database
-                  await _database.child('shops/$newCategory').set({});
-
-                  Navigator.of(context).pop();
-                  _fetchData(); // Reload data after adding category
-                }
-              },
-              child: Text('Add Category'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   // Add a new shop to a category
   void _addShop(String category) async {
-    final shopTypeController = TextEditingController();
     final newShopNameController = TextEditingController();
     final newShopContactController = TextEditingController();
     final newShopLocationController = TextEditingController();
-    final newShopItemsController = TextEditingController();
 
     showDialog(
       context: context,
@@ -125,10 +83,6 @@ class _HomePageState extends State<HomePage> {
                 controller: newShopLocationController,
                 decoration: InputDecoration(labelText: 'Location'),
               ),
-              TextField(
-                controller: newShopItemsController,
-                decoration: InputDecoration(labelText: 'Popular Items (comma-separated)'),
-              ),
             ],
           ),
           actions: [
@@ -143,16 +97,14 @@ class _HomePageState extends State<HomePage> {
                 final newShopName = newShopNameController.text;
                 final newShopContact = newShopContactController.text;
                 final newShopLocation = newShopLocationController.text;
-                final newShopItems = newShopItemsController.text.split(',').map((item) => item.trim()).toList();
 
                 if (newShopName.isNotEmpty &&
                     newShopContact.isNotEmpty &&
                     newShopLocation.isNotEmpty) {
-                  // Add the new shop to Firebase under the selected category
                   await _database.child('shops/$category/$newShopName').set({
                     'contact': newShopContact,
                     'location': newShopLocation,
-                    'popularItems': newShopItems,  // Array of popular items
+                    'popularItems': [],  // You can modify this field as needed
                   });
 
                   Navigator.of(context).pop();
@@ -173,7 +125,6 @@ class _HomePageState extends State<HomePage> {
     final newShopNameController = TextEditingController(text: shopName);
     final newShopContactController = TextEditingController(text: shop['contact']);
     final newShopLocationController = TextEditingController(text: shop['location']);
-    final newShopItemsController = TextEditingController(text: shop['popularItems'].join(', '));
 
     showDialog(
       context: context,
@@ -195,10 +146,6 @@ class _HomePageState extends State<HomePage> {
                 controller: newShopLocationController,
                 decoration: InputDecoration(labelText: 'Location'),
               ),
-              TextField(
-                controller: newShopItemsController,
-                decoration: InputDecoration(labelText: 'Popular Items (comma-separated)'),
-              ),
             ],
           ),
           actions: [
@@ -213,7 +160,6 @@ class _HomePageState extends State<HomePage> {
                 final newShopName = newShopNameController.text;
                 final newShopContact = newShopContactController.text;
                 final newShopLocation = newShopLocationController.text;
-                final newShopItems = newShopItemsController.text.split(',').map((item) => item.trim()).toList();
 
                 if (newShopName.isNotEmpty &&
                     newShopContact.isNotEmpty &&
@@ -222,7 +168,7 @@ class _HomePageState extends State<HomePage> {
                   await _database.child('shops/$category/$newShopName').set({
                     'contact': newShopContact,
                     'location': newShopLocation,
-                    'popularItems': newShopItems,  // Array of popular items
+                    'popularItems': [],  // Modify as needed
                   });
 
                   Navigator.of(context).pop();
@@ -269,15 +215,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Shop Dashboard'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add),
-            onPressed: _addCategory, // Button to add a new category
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text('Shop Dashboard')),
       body: categories.isEmpty
           ? Center(child: CircularProgressIndicator())
           : ListView(
@@ -288,18 +226,37 @@ class _HomePageState extends State<HomePage> {
                     final shop = categories[category][shopName];
                     return ListTile(
                       title: Text(shopName),
-                      subtitle: Text('Location: ${shop['location']}'),
-                      onTap: () => _editShop(category, shopName), // Edit shop
-                      trailing: IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () => _deleteShop(category, shopName), // Delete shop
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Contact: ${shop['contact']}'),
+                          Text('Location: ${shop['location']}'),
+                          Text('Popular Items: ${shop['popularItems'].join(', ')}'),
+                        ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () => _editShop(category, shopName),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete),
+                            onPressed: () => _deleteShop(category, shopName),
+                          ),
+                        ],
                       ),
                     );
-                  }).toList(),
-                  trailing: IconButton(
-                    icon: Icon(Icons.add),
-                    onPressed: () => _addShop(category), // Add shop
-                  ),
+                  }).toList()
+                    ..add(
+                      Center(
+                        child: ElevatedButton(
+                          onPressed: () => _addShop(category),
+                          child: Text('Add Shop'),
+                        ),
+                      ),
+                    ),
                 );
               }).toList(),
             ),
