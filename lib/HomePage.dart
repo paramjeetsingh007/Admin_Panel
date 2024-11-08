@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'firebase_options.dart';  // Make sure you import the generated Firebase options
+import 'firebase_options.dart';  // Ensure Firebase options are properly imported
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,  // Use the correct Firebase options here
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(const MyApp());
 }
@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'Shop Dashboard',
       theme: ThemeData(),
       home: HomePage(),
     );
@@ -31,8 +31,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final DatabaseReference _database = FirebaseDatabase.instance.ref(); // Correct Firebase reference
-
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
   Map<String, dynamic> categories = {};
 
   @override
@@ -57,11 +56,51 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Add a new shop category
+  void _addCategory() async {
+    final newCategoryController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add New Shop Type'),
+          content: TextField(
+            controller: newCategoryController,
+            decoration: InputDecoration(labelText: 'Shop Type (e.g., Grocery, Sweets)'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final newCategory = newCategoryController.text;
+
+                if (newCategory.isNotEmpty) {
+                  // Create a new empty category in the database
+                  await _database.child('shops/$newCategory').set({});
+                  Navigator.of(context).pop();
+                  _fetchData(); // Reload data after adding category
+                }
+              },
+              child: Text('Add Category'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   // Add a new shop to a category
   void _addShop(String category) async {
     final newShopNameController = TextEditingController();
     final newShopContactController = TextEditingController();
     final newShopLocationController = TextEditingController();
+    final newShopItemsController = TextEditingController();
 
     showDialog(
       context: context,
@@ -83,6 +122,10 @@ class _HomePageState extends State<HomePage> {
                 controller: newShopLocationController,
                 decoration: InputDecoration(labelText: 'Location'),
               ),
+              TextField(
+                controller: newShopItemsController,
+                decoration: InputDecoration(labelText: 'Popular Items (comma-separated)'),
+              ),
             ],
           ),
           actions: [
@@ -97,6 +140,7 @@ class _HomePageState extends State<HomePage> {
                 final newShopName = newShopNameController.text;
                 final newShopContact = newShopContactController.text;
                 final newShopLocation = newShopLocationController.text;
+                final newShopItems = newShopItemsController.text.split(',').map((item) => item.trim()).toList();
 
                 if (newShopName.isNotEmpty &&
                     newShopContact.isNotEmpty &&
@@ -104,7 +148,7 @@ class _HomePageState extends State<HomePage> {
                   await _database.child('shops/$category/$newShopName').set({
                     'contact': newShopContact,
                     'location': newShopLocation,
-                    'popularItems': [],  // You can modify this field as needed
+                    'popularItems': newShopItems,
                   });
 
                   Navigator.of(context).pop();
@@ -125,6 +169,7 @@ class _HomePageState extends State<HomePage> {
     final newShopNameController = TextEditingController(text: shopName);
     final newShopContactController = TextEditingController(text: shop['contact']);
     final newShopLocationController = TextEditingController(text: shop['location']);
+    final newShopItemsController = TextEditingController(text: shop['popularItems'].join(', '));
 
     showDialog(
       context: context,
@@ -146,6 +191,10 @@ class _HomePageState extends State<HomePage> {
                 controller: newShopLocationController,
                 decoration: InputDecoration(labelText: 'Location'),
               ),
+              TextField(
+                controller: newShopItemsController,
+                decoration: InputDecoration(labelText: 'Popular Items (comma-separated)'),
+              ),
             ],
           ),
           actions: [
@@ -160,6 +209,7 @@ class _HomePageState extends State<HomePage> {
                 final newShopName = newShopNameController.text;
                 final newShopContact = newShopContactController.text;
                 final newShopLocation = newShopLocationController.text;
+                final newShopItems = newShopItemsController.text.split(',').map((item) => item.trim()).toList();
 
                 if (newShopName.isNotEmpty &&
                     newShopContact.isNotEmpty &&
@@ -168,7 +218,7 @@ class _HomePageState extends State<HomePage> {
                   await _database.child('shops/$category/$newShopName').set({
                     'contact': newShopContact,
                     'location': newShopLocation,
-                    'popularItems': [],  // Modify as needed
+                    'popularItems': newShopItems,
                   });
 
                   Navigator.of(context).pop();
@@ -215,7 +265,9 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Shop Dashboard')),
+      appBar: AppBar(
+        title: Text('Shop Dashboard'),
+      ),
       body: categories.isEmpty
           ? Center(child: CircularProgressIndicator())
           : ListView(
@@ -229,11 +281,12 @@ class _HomePageState extends State<HomePage> {
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Contact: ${shop['contact']}'),
-                          Text('Location: ${shop['location']}'),
-                          Text('Popular Items: ${shop['popularItems'].join(', ')}'),
+                          Text('Contact: ${shop['contact'] ?? 'Not available'}'),
+                          Text('Location: ${shop['location'] ?? 'Not available'}'),
+                          Text('Popular Items: ${shop['popularItems'] != null ? (shop['popularItems'] as List).join(', ') : 'Not available'}'),
                         ],
                       ),
+                      onTap: () => _editShop(category, shopName),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -248,18 +301,19 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     );
-                  }).toList()
-                    ..add(
-                      Center(
-                        child: ElevatedButton(
-                          onPressed: () => _addShop(category),
-                          child: Text('Add Shop'),
-                        ),
-                      ),
-                    ),
+                  }).toList(),
+                  trailing: IconButton(
+                    icon: Icon(Icons.add),
+                    onPressed: () => _addShop(category),
+                  ),
                 );
               }).toList(),
             ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addCategory,
+        child: Icon(Icons.add),
+        tooltip: 'Add Shop Type',
+      ),
     );
   }
 }
