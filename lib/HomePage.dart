@@ -1,0 +1,265 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'firebase_options.dart';  // Make sure you import the generated Firebase options
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,  // Use the correct Firebase options here
+  );
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Flutter Demo',
+      theme: ThemeData(),
+      home: HomePage(),
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final DatabaseReference _database = FirebaseDatabase.instance.ref(); // Correct Firebase reference
+
+  Map<String, dynamic> categories = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  // Fetch data from Firebase Realtime Database
+  Future<void> _fetchData() async {
+    try {
+      final snapshot = await _database.child('shops').get();
+      if (snapshot.exists) {
+        setState(() {
+          categories = Map<String, dynamic>.from(snapshot.value as Map);
+        });
+      } else {
+        print('No data available.');
+      }
+    } catch (error) {
+      print('Error fetching data: $error');
+    }
+  }
+
+  // Add a new shop to a category
+  void _addShop(String category) async {
+    final newShopNameController = TextEditingController();
+    final newShopContactController = TextEditingController();
+    final newShopLocationController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add New Shop to $category'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: newShopNameController,
+                decoration: InputDecoration(labelText: 'Shop Name'),
+              ),
+              TextField(
+                controller: newShopContactController,
+                decoration: InputDecoration(labelText: 'Contact'),
+              ),
+              TextField(
+                controller: newShopLocationController,
+                decoration: InputDecoration(labelText: 'Location'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final newShopName = newShopNameController.text;
+                final newShopContact = newShopContactController.text;
+                final newShopLocation = newShopLocationController.text;
+
+                if (newShopName.isNotEmpty &&
+                    newShopContact.isNotEmpty &&
+                    newShopLocation.isNotEmpty) {
+                  await _database.child('shops/$category/$newShopName').set({
+                    'contact': newShopContact,
+                    'location': newShopLocation,
+                    'popularItems': [],  // You can modify this field as needed
+                  });
+
+                  Navigator.of(context).pop();
+                  _fetchData(); // Reload data after adding
+                }
+              },
+              child: Text('Add Shop'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Edit an existing shop
+  void _editShop(String category, String shopName) async {
+    final shop = categories[category][shopName];
+    final newShopNameController = TextEditingController(text: shopName);
+    final newShopContactController = TextEditingController(text: shop['contact']);
+    final newShopLocationController = TextEditingController(text: shop['location']);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Edit $shopName'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: newShopNameController,
+                decoration: InputDecoration(labelText: 'Shop Name'),
+              ),
+              TextField(
+                controller: newShopContactController,
+                decoration: InputDecoration(labelText: 'Contact'),
+              ),
+              TextField(
+                controller: newShopLocationController,
+                decoration: InputDecoration(labelText: 'Location'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final newShopName = newShopNameController.text;
+                final newShopContact = newShopContactController.text;
+                final newShopLocation = newShopLocationController.text;
+
+                if (newShopName.isNotEmpty &&
+                    newShopContact.isNotEmpty &&
+                    newShopLocation.isNotEmpty) {
+                  await _database.child('shops/$category/$shopName').remove();
+                  await _database.child('shops/$category/$newShopName').set({
+                    'contact': newShopContact,
+                    'location': newShopLocation,
+                    'popularItems': [],  // Modify as needed
+                  });
+
+                  Navigator.of(context).pop();
+                  _fetchData(); // Reload data after editing
+                }
+              },
+              child: Text('Save Changes'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Delete a shop
+  void _deleteShop(String category, String shopName) async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Delete $shopName'),
+          content: Text('Are you sure you want to delete this shop?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await _database.child('shops/$category/$shopName').remove();
+                Navigator.of(context).pop();
+                _fetchData(); // Reload data after deleting
+              },
+              child: Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Shop Dashboard')),
+      body: categories.isEmpty
+          ? Center(child: CircularProgressIndicator())
+          : ListView(
+              children: categories.keys.map((category) {
+                return ExpansionTile(
+                  title: Text(category),
+                  children: categories[category].keys.map<Widget>((shopName) {
+                    final shop = categories[category][shopName];
+                    return ListTile(
+                      title: Text(shopName),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Contact: ${shop['contact']}'),
+                          Text('Location: ${shop['location']}'),
+                          Text('Popular Items: ${shop['popularItems'].join(', ')}'),
+                        ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () => _editShop(category, shopName),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete),
+                            onPressed: () => _deleteShop(category, shopName),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList()
+                    ..add(
+                      Center(
+                        child: ElevatedButton(
+                          onPressed: () => _addShop(category),
+                          child: Text('Add Shop'),
+                        ),
+                      ),
+                    ),
+                );
+              }).toList(),
+            ),
+    );
+  }
+}
