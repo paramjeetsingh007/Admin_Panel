@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'firebase_options.dart';  // Ensure Firebase options are properly imported
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,18 +56,18 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Add a new shop category
-  void _addCategory() async {
+  // Add a new category to Firebase
+  void _addCategory() {
     final newCategoryController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Add New Shop Type'),
+          title: Text('Add New Category'),
           content: TextField(
             controller: newCategoryController,
-            decoration: InputDecoration(labelText: 'Shop Type (e.g., Grocery, Sweets)'),
+            decoration: InputDecoration(labelText: 'Category Name'),
           ),
           actions: [
             TextButton(
@@ -78,13 +78,11 @@ class _HomePageState extends State<HomePage> {
             ),
             TextButton(
               onPressed: () async {
-                final newCategory = newCategoryController.text;
-
+                final newCategory = newCategoryController.text.trim();
                 if (newCategory.isNotEmpty) {
-                  // Create a new empty category in the database
                   await _database.child('shops/$newCategory').set({});
                   Navigator.of(context).pop();
-                  _fetchData(); // Reload data after adding category
+                  _fetchData();
                 }
               },
               child: Text('Add Category'),
@@ -95,12 +93,12 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Add a new shop to a category
-  void _addShop(String category) async {
-    final newShopNameController = TextEditingController();
-    final newShopContactController = TextEditingController();
-    final newShopLocationController = TextEditingController();
-    final newShopItemsController = TextEditingController();
+  // Add a new shop to a category in Firebase
+  void _addShop(String category) {
+    final shopNameController = TextEditingController();
+    final contactController = TextEditingController();
+    final locationController = TextEditingController();
+    final popularItemsController = TextEditingController();
 
     showDialog(
       context: context,
@@ -111,19 +109,19 @@ class _HomePageState extends State<HomePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: newShopNameController,
+                controller: shopNameController,
                 decoration: InputDecoration(labelText: 'Shop Name'),
               ),
               TextField(
-                controller: newShopContactController,
+                controller: contactController,
                 decoration: InputDecoration(labelText: 'Contact'),
               ),
               TextField(
-                controller: newShopLocationController,
+                controller: locationController,
                 decoration: InputDecoration(labelText: 'Location'),
               ),
               TextField(
-                controller: newShopItemsController,
+                controller: popularItemsController,
                 decoration: InputDecoration(labelText: 'Popular Items (comma-separated)'),
               ),
             ],
@@ -137,22 +135,22 @@ class _HomePageState extends State<HomePage> {
             ),
             TextButton(
               onPressed: () async {
-                final newShopName = newShopNameController.text;
-                final newShopContact = newShopContactController.text;
-                final newShopLocation = newShopLocationController.text;
-                final newShopItems = newShopItemsController.text.split(',').map((item) => item.trim()).toList();
+                final shopName = shopNameController.text.trim();
+                final contact = contactController.text.trim();
+                final location = locationController.text.trim();
+                final popularItems = popularItemsController.text
+                    .split(',')
+                    .map((item) => item.trim())
+                    .toList();
 
-                if (newShopName.isNotEmpty &&
-                    newShopContact.isNotEmpty &&
-                    newShopLocation.isNotEmpty) {
-                  await _database.child('shops/$category/$newShopName').set({
-                    'contact': newShopContact,
-                    'location': newShopLocation,
-                    'popularItems': newShopItems,
+                if (shopName.isNotEmpty) {
+                  await _database.child('shops/$category/$shopName').set({
+                    'contact': contact,
+                    'location': location,
+                    'popularItems': popularItems,
                   });
-
                   Navigator.of(context).pop();
-                  _fetchData(); // Reload data after adding
+                  _fetchData();
                 }
               },
               child: Text('Add Shop'),
@@ -163,36 +161,33 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Edit an existing shop
-  void _editShop(String category, String shopName) async {
+  // Edit an existing shop in a category
+  void _editShop(String category, String shopName) {
     final shop = categories[category][shopName];
-    final newShopNameController = TextEditingController(text: shopName);
-    final newShopContactController = TextEditingController(text: shop['contact']);
-    final newShopLocationController = TextEditingController(text: shop['location']);
-    final newShopItemsController = TextEditingController(text: shop['popularItems'].join(', '));
+    final contactController = TextEditingController(text: shop['contact']);
+    final locationController = TextEditingController(text: shop['location']);
+    final popularItemsController = TextEditingController(
+      text: (shop['popularItems'] as List).join(', '),
+    );
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Edit $shopName'),
+          title: Text('Edit Shop $shopName in $category'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: newShopNameController,
-                decoration: InputDecoration(labelText: 'Shop Name'),
-              ),
-              TextField(
-                controller: newShopContactController,
+                controller: contactController,
                 decoration: InputDecoration(labelText: 'Contact'),
               ),
               TextField(
-                controller: newShopLocationController,
+                controller: locationController,
                 decoration: InputDecoration(labelText: 'Location'),
               ),
               TextField(
-                controller: newShopItemsController,
+                controller: popularItemsController,
                 decoration: InputDecoration(labelText: 'Popular Items (comma-separated)'),
               ),
             ],
@@ -206,24 +201,20 @@ class _HomePageState extends State<HomePage> {
             ),
             TextButton(
               onPressed: () async {
-                final newShopName = newShopNameController.text;
-                final newShopContact = newShopContactController.text;
-                final newShopLocation = newShopLocationController.text;
-                final newShopItems = newShopItemsController.text.split(',').map((item) => item.trim()).toList();
+                final contact = contactController.text.trim();
+                final location = locationController.text.trim();
+                final popularItems = popularItemsController.text
+                    .split(',')
+                    .map((item) => item.trim())
+                    .toList();
 
-                if (newShopName.isNotEmpty &&
-                    newShopContact.isNotEmpty &&
-                    newShopLocation.isNotEmpty) {
-                  await _database.child('shops/$category/$shopName').remove();
-                  await _database.child('shops/$category/$newShopName').set({
-                    'contact': newShopContact,
-                    'location': newShopLocation,
-                    'popularItems': newShopItems,
-                  });
-
-                  Navigator.of(context).pop();
-                  _fetchData(); // Reload data after editing
-                }
+                await _database.child('shops/$category/$shopName').update({
+                  'contact': contact,
+                  'location': location,
+                  'popularItems': popularItems,
+                });
+                Navigator.of(context).pop();
+                _fetchData();
               },
               child: Text('Save Changes'),
             ),
@@ -233,13 +224,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Delete a shop
-  void _deleteShop(String category, String shopName) async {
+  // Delete a shop from a category in Firebase
+  void _deleteShop(String category, String shopName) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Delete $shopName'),
+          title: Text('Delete Shop $shopName from $category'),
           content: Text('Are you sure you want to delete this shop?'),
           actions: [
             TextButton(
@@ -252,7 +243,7 @@ class _HomePageState extends State<HomePage> {
               onPressed: () async {
                 await _database.child('shops/$category/$shopName').remove();
                 Navigator.of(context).pop();
-                _fetchData(); // Reload data after deleting
+                _fetchData();
               },
               child: Text('Delete'),
             ),
@@ -310,9 +301,13 @@ class _HomePageState extends State<HomePage> {
               }).toList(),
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addCategory,
+        
+        onPressed: (){
+             print("FAB Pressed");  // Add this to check if the FAB is triggered
+              _addCategory();
+        },
         child: Icon(Icons.add),
-        tooltip: 'Add Shop Type',
+        tooltip: 'Add Category',
       ),
     );
   }
