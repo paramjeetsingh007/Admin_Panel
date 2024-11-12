@@ -19,45 +19,229 @@ class _ViewShopTypesPageState extends State<ViewShopTypesPage> {
   // Fetch data from Firebase
   void fetchShopTypes() {
     databaseRef.child('shopTypes').once().then((DatabaseEvent event) {
-      print("Data fetched: ${event.snapshot.value}"); // Debug log
       if (event.snapshot.exists) {
         var fetchedData = event.snapshot.value;
 
-        // Check if data is not null and is of type List
+        // Ensure the data is of List type and print it
         if (fetchedData is List) {
           setState(() {
-            // Map each shop type object to a list of shop types with a default ID
-            shopTypes = fetchedData.asMap().entries.map((entry) {
-              var index = entry.key;
-              var shopType = entry.value;
-
+            shopTypes = fetchedData.map((shopType) {
               return {
-                'id': index, // Use the index as an ID
                 'name': shopType['name'] ?? 'No Name',
                 'description': shopType['description'] ?? 'No Description',
                 'shops': shopType['shops'] ?? [], // Shops under this shop type
               };
             }).toList();
           });
-          print("Shop types: $shopTypes"); // Debug log
         } else {
           setState(() {
             shopTypes = [];
           });
-          print("Fetched data is not in expected format."); // Debug log
         }
       } else {
         setState(() {
           shopTypes = [];
         });
-        print("No data available under 'shopTypes'."); // Debug log
       }
     }).catchError((error) {
-      print('Failed to fetch data: $error');
       setState(() {
         shopTypes = [];
       });
     });
+  }
+
+  // Edit Shop Type
+  void editShopType(int index) {
+    final shopType = shopTypes[index];
+    final nameController = TextEditingController(text: shopType['name']);
+    final descriptionController = TextEditingController(text: shopType['description']);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Edit Shop Type"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(labelText: 'Shop Type Name'),
+              ),
+              TextField(
+                controller: descriptionController,
+                decoration: InputDecoration(labelText: 'Shop Type Description'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                String updatedName = nameController.text;
+                String updatedDescription = descriptionController.text;
+
+                // Update Firebase
+                databaseRef.child('shopTypes').child(index.toString()).update({
+                  'name': updatedName,
+                  'description': updatedDescription,
+                }).then((_) {
+                  setState(() {
+                    shopTypes[index]['name'] = updatedName;
+                    shopTypes[index]['description'] = updatedDescription;
+                  });
+                  Navigator.pop(context);
+                });
+              },
+              child: Text("Save"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("Cancel"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Delete Shop Type
+  void deleteShopType(int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Delete Shop Type"),
+          content: Text("Are you sure you want to delete this shop type?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // Remove shop type from Firebase
+                databaseRef.child('shopTypes').child(index.toString()).remove().then((_) {
+                  setState(() {
+                    shopTypes.removeAt(index);
+                  });
+                  Navigator.pop(context);
+                });
+              },
+              child: Text("Yes"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("No"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Edit Shop
+  void editShop(int shopTypeIndex, int shopIndex) {
+    final shop = shopTypes[shopTypeIndex]['shops'][shopIndex];
+    final nameController = TextEditingController(text: shop['name']);
+    final locationController = TextEditingController(text: shop['location']);
+    final contactController = TextEditingController(text: shop['contact']);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Edit Shop"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(labelText: 'Shop Name'),
+              ),
+              TextField(
+                controller: locationController,
+                decoration: InputDecoration(labelText: 'Location'),
+              ),
+              TextField(
+                controller: contactController,
+                decoration: InputDecoration(labelText: 'Contact'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                String updatedName = nameController.text;
+                String updatedLocation = locationController.text;
+                String updatedContact = contactController.text;
+
+                // Update Firebase
+                databaseRef.child('shopTypes')
+                    .child(shopTypeIndex.toString())
+                    .child('shops')
+                    .child(shopIndex.toString())
+                    .update({
+                  'name': updatedName,
+                  'location': updatedLocation,
+                  'contact': updatedContact,
+                }).then((_) {
+                  setState(() {
+                    shopTypes[shopTypeIndex]['shops'][shopIndex]['name'] = updatedName;
+                    shopTypes[shopTypeIndex]['shops'][shopIndex]['location'] = updatedLocation;
+                    shopTypes[shopTypeIndex]['shops'][shopIndex]['contact'] = updatedContact;
+                  });
+                  Navigator.pop(context);
+                });
+              },
+              child: Text("Save"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("Cancel"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Delete Shop
+  void deleteShop(int shopTypeIndex, int shopIndex) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Delete Shop"),
+          content: Text("Are you sure you want to delete this shop?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // Remove shop from Firebase
+                databaseRef.child('shopTypes')
+                    .child(shopTypeIndex.toString())
+                    .child('shops')
+                    .child(shopIndex.toString())
+                    .remove().then((_) {
+                  setState(() {
+                    shopTypes[shopTypeIndex]['shops'].removeAt(shopIndex);
+                  });
+                  Navigator.pop(context);
+                });
+              },
+              child: Text("Yes"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("No"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -69,12 +253,11 @@ class _ViewShopTypesPageState extends State<ViewShopTypesPage> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: shopTypes.isEmpty
-            ? Center(child: CircularProgressIndicator())
+            ? Center(child: CircularProgressIndicator()) // Show loader while data is being fetched
             : ListView.builder(
                 itemCount: shopTypes.length,
                 itemBuilder: (context, index) {
                   var shopType = shopTypes[index];
-                  var shopTypeId = shopType['id'];
                   var shops = shopType['shops'] as List;
 
                   return Card(
@@ -83,44 +266,38 @@ class _ViewShopTypesPageState extends State<ViewShopTypesPage> {
                     child: ExpansionTile(
                       title: Text(shopType['name'] ?? 'No Name'),
                       subtitle: Text(shopType['description'] ?? 'No Description'),
-                      children: shops.isEmpty
-                          ? [Text('No shops available')]
-                          : shops.map<Widget>((shop) {
-                              var products = shop['products'] ?? [];
-                              var popularItems = shop['popularItems'] ?? [];
-
-                              return Card(
-                                margin: EdgeInsets.symmetric(vertical: 8),
-                                child: ExpansionTile(
-                                  title: Text(shop['name'] ?? 'No Shop Name'),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Location: ${shop['location'] ?? 'No Location'}'),
-                                      Text('Contact: ${shop['contact'] ?? 'N/A'}'),
-                                      Text('Popular Items: ${popularItems.join(', ')}'),
-                                    ],
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () => deleteShopType(index),
+                      ),
+                      children: [
+                        ...shops.map<Widget>((shop) {
+                          return Card(
+                            margin: EdgeInsets.symmetric(vertical: 8),
+                            child: ListTile(
+                              title: Text(shop['name'] ?? 'No Shop Name'),
+                              subtitle: Text(shop['location'] ?? 'No Location'),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit),
+                                    onPressed: () {
+                                      editShop(index, shops.indexOf(shop));
+                                    },
                                   ),
-                                  children: products.isEmpty
-                                      ? [Text('No products available')]
-                                      : products.map<Widget>((product) {
-                                          return ListTile(
-                                            leading: Image.network(
-                                              product['imageURL'] ?? '',
-                                              width: 50,
-                                              height: 50,
-                                              fit: BoxFit.cover,
-                                            ),
-                                            title: Text(product['name'] ?? 'No Product Name'),
-                                            subtitle: Text(
-                                              '${product['description'] ?? ''}\nPrice: \$${product['price'] ?? 'N/A'}',
-                                              style: TextStyle(fontSize: 12),
-                                            ),
-                                          );
-                                        }).toList(),
-                                ),
-                              );
-                            }).toList(),
+                                  IconButton(
+                                    icon: Icon(Icons.delete),
+                                    onPressed: () {
+                                      deleteShop(index, shops.indexOf(shop));
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ],
                     ),
                   );
                 },
