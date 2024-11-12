@@ -1,3 +1,4 @@
+import 'package:admin_panel/DashboardPage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -23,8 +24,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(),
       initialRoute: '/',
       routes: {
-        '/': (context) => LoginPage(),
-        '/home': (context) => HomePage(), // Register the '/home' route
+        // '/': (context) => LoginPage(),
+        '/': (context) => DashboardPage (), // Register the '/home' route
       },
     );
   }

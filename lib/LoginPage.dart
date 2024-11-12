@@ -18,7 +18,7 @@ class _LoginPageState extends State<LoginPage> {
         password: _passwordController.text.trim(),
       );
       // Navigate to home or dashboard page upon successful login
-      Navigator.pushNamed(context, '/home');
+      Navigator.pushNamed(context, '/DashboardPage');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to login: $e')),
