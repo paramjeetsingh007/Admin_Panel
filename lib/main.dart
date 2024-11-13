@@ -1,3 +1,4 @@
+import 'package:admin_panel/shop_categories_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => LoginPage(),
-        '/home': (context) => HomePage(), // Register the '/home' route
+        '/home': (context) => ShopCategoriesPage(), // Register the '/home' route
       },
     );
   }

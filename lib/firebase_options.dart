@@ -60,5 +60,6 @@ class DefaultFirebaseOptions {
     authDomain: 'web-admin-e4ee0.firebaseapp.com',
     storageBucket: 'web-admin-e4ee0.firebasestorage.app',
     measurementId: 'G-M5XHK15WS9',
+    databaseURL: 'https://web-admin-e4ee0-default-rtdb.asia-southeast1.firebasedatabase.app/'
   );
 }
